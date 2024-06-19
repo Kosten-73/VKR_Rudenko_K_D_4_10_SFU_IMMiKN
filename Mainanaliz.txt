@@ -1,0 +1,56 @@
+file_1714511772.java:7:	NoPackage:	All classes, interfaces, enums and annotations must belong to a named package
+file_1714511772.java:7:	UseUtilityClass:	This utility class has a non-private constructor
+file_1714511772.java:22:	SimplifyBooleanReturns:	This if statement can be replaced by `return {condition};`
+file_1714511772.java:29:	SimplifyBooleanReturns:	This if statement can be replaced by `return {condition};`
+file_1714511772.java:34:	SimplifyBooleanReturns:	This if statement can be replaced by `return {condition};`
+file_1714511772.java:53:	SimplifyBooleanReturns:	This if statement can be replaced by `return {condition};`
+file_1714511772.java:60:	SimplifyBooleanReturns:	This if statement can be replaced by `return {condition};`
+file_1714511772.java:65:	SimplifyBooleanReturns:	This if statement can be replaced by `return {condition};`
+file_1714511772.java:128:	LocalVariableNamingConventions:	The local variable name 'b_c' doesn't match '[a-z][a-zA-Z0-9]*'
+file_1714511772.java:145:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:145:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:146:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:146:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:147:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:147:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:148:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:148:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:149:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:149:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:150:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:150:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:158:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:158:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:158:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:159:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:159:	UselessParentheses:	Useless parentheses.
+file_1714511772.java:159:	UselessParentheses:	Useless parentheses.
+
+Перевод на русский язык:
+file_17145117772.java:7: nopackage: все классы, интерфейсы, перечисления и аннотации должны принадлежать к именованному пакету
+file_17145117772.java:7: UseUtilityClass: этот утилитный класс имеет непреодолимый конструктор
+file_17145117772.java:22: упростить booleanreturns: это оператор может быть заменен на `return {condition};` ``
+file_17145117772.java:29: упростить booleanreturns: это оператор может быть заменен на `return {condition};` ``
+file_17145117772.java:34: упростить booleanreturns: это оператор может быть заменен на `return {condition};` `` `
+file_17145117772.java:53: упростить booleanreturns: это оператор может быть заменен на `return {condition};` `
+file_17145117772.java:60: упростить booleanreturns: это оператор может быть заменен на `return {condition};` `
+file_17145117772.java:65: упростить booleanreturns: это оператор может быть заменен на `return {condition};` ``
+file_17145117772.java:128: localvariablenamingconventions: имя локальной переменной «b_c» не соответствует '[a-z] [a-za-z0-9]*'
+file_1714511772.java:145: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:145: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:146: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:146: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:147: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:147: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:148: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:148: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:149: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:149: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:150: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:150: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:158: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:158: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:158: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:159: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:159: Unlessparentheses: бесполезные скобки.
+file_1714511772.java:159: Unlessparentheses: бесполезные скобки.
