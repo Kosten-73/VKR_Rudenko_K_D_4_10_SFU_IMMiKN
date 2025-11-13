@@ -1,15 +1,19 @@
 import telebot, subprocess
+import os
 from telebot.types import Message
 from googletrans import Translator
 from telebot import types
 import time
 
-
 with open('token.txt', 'r') as file:
     token = file.read()
 
-
 bot = telebot.TeleBot(token)
+
+# Явно устанавливаем путь к Java
+JAVA_HOME = r"C:\Program Files\Eclipse Adoptium\jdk-25.0.0.36-hotspot"
+os.environ['JAVA_HOME'] = JAVA_HOME
+os.environ['PATH'] = JAVA_HOME + r'\bin;' + os.environ['PATH']
 
 
 def trans_later(eng_text):
@@ -18,17 +22,61 @@ def trans_later(eng_text):
     return tr.text
 
 
+def check_java():
+    """Проверяет доступность Java"""
+    try:
+        result = subprocess.run(
+            ["java", "-version"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        return result.returncode == 0
+    except:
+        return False
+
+
 def analiz(src1):
-    return (subprocess.run(
-        f"pmd.bat check -d {src1} -R rulesets/java/quickstart.xml -f text",
-        shell=True, capture_output=True, text=True, encoding='cp866').stdout)
+    # Сначала проверяем доступность Java
+    if not check_java():
+        return "❌ Java не найдена в PATH. Проверьте установку Java."
+
+    try:
+        result = subprocess.run(
+            f'pmd.bat check -d "{src1}" -R rulesets/java/quickstart.xml -f text',
+            shell=True,
+            capture_output=True,
+            text=True,
+            encoding='cp866',
+            timeout=30
+        )
+
+        # PMD возвращает 4 если найдены проблемы, это нормально
+        if result.returncode <= 4:
+            output = result.stdout
+            return output if output.strip() else "Анализ завершен, проблем не найдено."
+        else:
+            return f"Ошибка PMD: {result.stderr}"
+
+    except subprocess.TimeoutExpired:
+        return "Анализ занял слишком много времени."
+    except Exception as e:
+        return f"Ошибка при анализе: {str(e)}"
 
 
 def analiz_itog(message):
     with open('file.java', 'w', encoding='utf-8') as file:
         file.write(message.text)
-    analizator_text = analiz() + '\n'
-    analizator_text += "Перевод на русский язык:" + '\n' + trans_later(analizator_text)
+
+    analizator_text = analiz('file.java') + '\n'
+
+    # Добавляем перевод только если анализ успешен
+    if not analizator_text.startswith("❌") and "ошибка" not in analizator_text.lower():
+        try:
+            analizator_text += "Перевод на русский язык:" + '\n' + trans_later(analizator_text)
+        except:
+            analizator_text += "\n(Перевод недоступен)"
+
     bot.reply_to(message, analizator_text)
 
 
@@ -38,16 +86,55 @@ def print_file(f_name):
     return content
 
 
+# Добавляем команду для проверки окружения
+@bot.message_handler(commands=['check'])
+def check_environment(message):
+    java_status = "✅ Java доступна" if check_java() else "❌ Java не найдена"
+
+    # Проверяем PMD
+    try:
+        pmd_check = subprocess.run(
+            ["pmd.bat", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        pmd_status = "✅ PMD доступен" if pmd_check.returncode == 0 else "❌ PMD не работает"
+    except:
+        pmd_status = "❌ PMD не найден"
+
+    status_text = f"Проверка окружения:\n{java_status}\n{pmd_status}"
+    bot.reply_to(message, status_text)
+
+
 @bot.message_handler(commands=['start'])
 def start(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton("Методы рефакторинга")
-    btn2 = types.KeyboardButton("❓ Задать вопрос")
-    markup.add(btn1, btn2)
-    bot.send_message(message.chat.id,
-                     text="Привет, {0.first_name}! Я бот который разбирается в java, могу рассказать о методах рефакторинга \n \n"
-                          "Если хочешь чтобы я проанализировал твой код то просто пришли мне его текстом скопировав его из своего редактора или пришли мне файл".format(
-                         message.from_user), reply_markup=markup)
+    btn2 = types.KeyboardButton("Связь с разработчикам ⁉️")
+    btn3 = types.KeyboardButton("Проверить окружение")
+    markup.add(btn1, btn2, btn3)
+
+    # Проверяем окружение при старте
+    java_ok = check_java()
+    status = "✅ Готов к анализу кода" if java_ok else "⚠️ Требуется настройка Java"
+
+    welcome_text = (
+        f"Привет, {message.from_user.first_name}! Я бот для анализа Java кода.\n\n"
+        f"Статус: {status}\n\n"
+    )
+
+    if not java_ok:
+        welcome_text += (
+            "Для анализа кода необходимо:\n"
+            "1. Установить Java\n"
+            "2. Добавить в PATH\n"
+            "3. Используйте /check для проверки\n"
+        )
+
+    welcome_text += "\nОтправьте мне Java код или файл для анализа."
+
+    bot.send_message(message.chat.id, text=welcome_text, reply_markup=markup)
 
 
 @bot.message_handler(content_types=['document'])
@@ -55,22 +142,28 @@ def get_text_messages(message: Message):
     file_info = bot.get_file(message.document.file_id)
     downloaded_file = bot.download_file(file_info.file_path)
     if message.document.file_name[-5:] == '.java':
-        # src = f"file_{int(time.time())}.java"
         src = f"{message.document.file_name}"
-        # src = f'C:/Users/korudenko/PycharmProjects/telegram_bot/{unique_filename}'
         with open(src, 'wb') as new_file:
             new_file.write(downloaded_file)
         analizator_text = analiz(src) + '\n'
-        analizator_text += "Перевод на русский язык:" + '\n' + trans_later(analizator_text)
+
+        # Добавляем перевод только если анализ успешен
+        if not analizator_text.startswith("❌") and "ошибка" not in analizator_text.lower():
+            try:
+                analizator_text += "Перевод на русский язык:" + '\n' + trans_later(analizator_text)
+            except:
+                analizator_text += "\n(Перевод недоступен)"
+
         if len(analizator_text) > 4096:
             name_file2 = message.document.file_name[:-5] + "_анализ.txt"
             with open(name_file2, 'w', encoding='utf-8') as new_file1:
                 new_file1.write(analizator_text)
             with open(name_file2, 'rb') as file3:
-                bot.send_document(message.chat.id, file3, caption='Ответ '
-                  'анализа вашего файла больше 4096 символом, поэтому отправляю Вам файл с даннными')
+                bot.send_document(message.chat.id, file3,
+                                  caption='Ответ анализа вашего файла больше 4096 символов, поэтому отправляю Вам файл с данными')
         else:
-            bot.reply_to(message, "Имя проанализированного файла: " + message.document.file_name + '\n' + '\n' + analizator_text)
+            bot.reply_to(message,
+                         "Имя проанализированного файла: " + message.document.file_name + '\n' + '\n' + analizator_text)
     else:
         bot.reply_to(message, "Файл не проанализирован, я понимаю только файлы на ЯП java")
 
@@ -78,7 +171,9 @@ def get_text_messages(message: Message):
 @bot.message_handler(content_types=['text'])
 @bot.edited_message_handler(content_types=['text'])
 def get_text_messeges(message: Message):
-    if (message.text == "Методы рефакторинга") or (message.text == "🔙 Назад к методом рефакторинга"):
+    if message.text == "Проверить окружение":
+        check_environment(message)
+    elif (message.text == "Методы рефакторинга") or (message.text == "🔙 Назад к методом рефакторинга"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn1 = types.KeyboardButton("Выделение метода")
         btn2 = types.KeyboardButton("Выделение класса")
@@ -143,7 +238,7 @@ def get_text_messeges(message: Message):
     elif (message.text == "🔙 Назад в основное меню"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn1 = types.KeyboardButton("Методы рефакторинга")
-        btn2 = types.KeyboardButton("❓ Задать вопрос")
+        btn2 = types.KeyboardButton("Связь с разработчикам ⁉️")
         markup.add(btn1, btn2)
         bot.send_message(message.chat.id,
                          text="{0.first_name} сново в основном меню! Напоминаю я бот который разбирается в java, могу рассказать о методах рефакторинга".format(
@@ -259,8 +354,7 @@ def get_text_messeges(message: Message):
                                           f"Побочные эффекты могут быть и в коде, который выполняется внутри самого оператора\\. Например, по результатам условия, что\\-то добавляется к переменной\\."
                                           f"1\\) Объедините множество условий в одном с помощью операторов и и или\\. Объединение операторов обычно следует такому правилу\\: \n \n"
                                           f"\\-\\-\\-\\- Вложенные условия соединяются с помощью оператора и\\. \n"
-                                          f"\\-\\-\\-\\- Условия, следующие друг за другом, соединяются с помощью оператора или\\. \n \n"
-                                          f"4\\) Извлеките метод из условия оператора и назовите его так, чтобы он отражал суть проверяемого выражения\\.",
+                                          f"\\-\\-\\-\\- Условия, следующие друг за другом, соединяются с помощью оператора или\\. \n \n",
                          parse_mode='MarkdownV2', reply_markup=markup)
 
     elif (message.text == "Передача всего объекта"):
@@ -284,7 +378,7 @@ def get_text_messeges(message: Message):
 
     elif (message.text == "Порядок рефакторинга - передача всего объекта"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn1 = types.KeyboardButton("Достоинства - передача всего объекта")
+        btn1 = types.KeyboardButton("Достоинства и недостатки - передача всего объекта")
         btn2 = types.KeyboardButton("Причины рефакторинга - передача всего объекта")
         back = types.KeyboardButton("🔙 Назад к методом рефакторинга")
         markup.add(btn1, btn2, back)
@@ -298,7 +392,7 @@ def get_text_messeges(message: Message):
 
     elif (message.text == "Причины рефакторинга - передача всего объекта"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn1 = types.KeyboardButton("Достоинства - передача всего объекта")
+        btn1 = types.KeyboardButton("Достоинства и недостатки - передача всего объекта")
         btn2 = types.KeyboardButton("Порядок рефакторинга - передача всего объекта")
         back = types.KeyboardButton("🔙 Назад к методом рефакторинга")
         markup.add(btn1, btn2, back)
@@ -322,8 +416,15 @@ def get_text_messeges(message: Message):
                                           f"2\\) Повышенная сложность: введение новых классов или объектов может усложнить структуру кода и его понимание",
                          parse_mode='MarkdownV2', reply_markup=markup)
 
+    elif (message.text == "Связь с разработчикам ⁉️"):
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            btn1 = types.KeyboardButton("Методы рефакторинга")
+            btn2 = types.KeyboardButton("Связь с разработчикам ⁉️")
+            btn3 = types.KeyboardButton("Проверить окружение")
+            markup.add(btn1, btn2, btn3)
+            bot.send_message(message.from_user.id,'Для связи с разработчиком можете связаться по телеграмму ниже\n \n'
+                                                   'Telegram - @Kosten_73 \n \n', reply_markup=markup)
     else:
         analiz_itog(message)
-
 
 bot.polling()
